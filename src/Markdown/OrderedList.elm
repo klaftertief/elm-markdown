@@ -11,11 +11,7 @@ type alias Parser a =
     Advanced.Parser String Parser.Problem a
 
 
-type alias ListItem =
-    String
-
-
-parser : Maybe RawBlock -> Parser ( Int, List ListItem )
+parser : Maybe RawBlock -> Parser ( Int, List String )
 parser lastBlock =
     openingItemParser lastBlock
         |> andThen
@@ -53,7 +49,7 @@ listMarkerParser =
             ]
 
 
-openingItemParser : Maybe RawBlock -> Parser ( Int, String, ListItem )
+openingItemParser : Maybe RawBlock -> Parser ( Int, String, String )
 openingItemParser lastBlock =
     let
         validateStartsWith1 parsed =
@@ -80,7 +76,7 @@ openingItemParser lastBlock =
         |. Advanced.symbol (Advanced.Token "\n" (Parser.ExpectingSymbol "\n"))
 
 
-singleItemParser : String -> Parser ListItem
+singleItemParser : String -> Parser String
 singleItemParser listMarker =
     succeed identity
         |. backtrackable
@@ -90,7 +86,7 @@ singleItemParser listMarker =
         |= itemBody
 
 
-itemBody : Parser ListItem
+itemBody : Parser String
 itemBody =
     oneOf
         [ succeed identity
@@ -106,7 +102,7 @@ itemBody =
         ]
 
 
-statementsHelp : String -> ListItem -> List ListItem -> Parser (Step (List ListItem) (List ListItem))
+statementsHelp : String -> String -> List String -> Parser (Step (List String) (List String))
 statementsHelp listMarker firstItem revStmts =
     oneOf
         [ succeed

@@ -148,7 +148,7 @@ Hello!
                     |> parse
                     |> Expect.equal
                         (Ok
-                            [ Block.UnorderedList
+                            [ Block.UnorderedList IsTight
                                 [ plainListItem "One"
                                 , plainListItem "Two"
                                 , plainListItem "Three"
@@ -173,17 +173,17 @@ Hello!
                     |> parse
                     |> Expect.equal
                         (Ok
-                            [ Block.UnorderedList
+                            [ Block.UnorderedList IsTight
                                 [ plainListItem "Item 1"
                                 , plainListItem "Item 2"
                                 , plainListItem "Item 3"
                                 ]
-                            , Block.UnorderedList
+                            , Block.UnorderedList IsTight
                                 [ plainListItem "Item 4"
                                 , plainListItem "Item 5"
                                 , plainListItem "Item 6"
                                 ]
-                            , Block.UnorderedList
+                            , Block.UnorderedList IsTight
                                 [ plainListItem "Item 7"
                                 , plainListItem "Item 8"
                                 , plainListItem "Item 9"
@@ -200,11 +200,13 @@ Hello!
                     |> Expect.equal
                         (Ok
                             [ Block.OrderedList 1
-                                [ unstyledText "foo"
-                                , unstyledText "bar"
+                                IsTight
+                                [ [ Block.Paragraph (unstyledText "foo") ]
+                                , [ Block.Paragraph (unstyledText "bar") ]
                                 ]
                             , Block.OrderedList 3
-                                [ unstyledText "baz"
+                                IsTight
+                                [ [ Block.Paragraph (unstyledText "baz") ]
                                 ]
                             ]
                         )
@@ -228,7 +230,8 @@ Hello!
                         (Ok
                             [ Block.Paragraph (unstyledText "The number of windows in my house is")
                             , Block.OrderedList 1
-                                [ unstyledText "The number of doors is 6."
+                                IsTight
+                                [ [ Block.Paragraph (unstyledText "The number of doors is 6.") ]
                                 ]
                             ]
                         )
@@ -299,7 +302,7 @@ Text after
                     |> Expect.equal
                         (Ok
                             [ Block.Heading Block.H1 (unstyledText "Title")
-                            , Block.UnorderedList
+                            , Block.UnorderedList IsTight
                                 [ plainListItem "This is an item"
                                 , plainListItem "And so is this"
                                 ]
@@ -722,9 +725,9 @@ expectOk expected input =
             Expect.fail (Debug.toString error)
 
 
-plainListItem : String -> Block.ListItem Block.Inline
+plainListItem : String -> Block.ListItem Block
 plainListItem body =
-    Block.ListItem Block.NoTask [ Block.Text body ]
+    Block.ListItem Block.NoTask [ Block.Paragraph (unstyledText body) ]
 
 
 unstyledText : String -> List Inline

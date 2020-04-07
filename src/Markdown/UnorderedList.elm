@@ -28,8 +28,19 @@ listMarkerParser =
             Advanced.getChompedString (Advanced.symbol (Advanced.Token marker (Parser.ExpectingSymbol marker)))
     in
     Advanced.oneOf
+        --[ markerOption "   -"
+        --, markerOption "  -"
+        --, markerOption " -"
         [ markerOption "-"
+
+        --, markerOption "   +"
+        --, markerOption "  +"
+        --, markerOption " +"
         , markerOption "+"
+
+        --, markerOption "   *"
+        --, markerOption "  *"
+        --, markerOption " *"
         , markerOption "*"
         ]
 

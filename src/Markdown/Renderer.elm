@@ -50,8 +50,8 @@ type alias Renderer view =
     , hardLineBreak : view
     , link : { title : Maybe String, destination : String } -> List view -> view
     , image : { alt : String, src : String, title : Maybe String } -> view
-    , unorderedList : List (ListItem view) -> view
-    , orderedList : Int -> List (List view) -> view
+    , unorderedList : List (ListItem (List view)) -> view
+    , orderedList : Int -> List (List (List view)) -> view
     , codeBlock : { body : String, language : Maybe String } -> view
     , thematicBreak : view
     , table : List view -> view
@@ -158,7 +158,7 @@ defaultHtmlRenderer =
                                                         ]
                                                         []
                                     in
-                                    Html.li [] (checkbox :: children)
+                                    Html.li [] (checkbox :: List.concat children)
                         )
                 )
     , orderedList =
@@ -175,7 +175,7 @@ defaultHtmlRenderer =
                     |> List.map
                         (\itemBlocks ->
                             Html.li []
-                                itemBlocks
+                                (List.concat itemBlocks)
                         )
                 )
     , html = Markdown.Html.oneOf []
@@ -324,21 +324,52 @@ renderHelperSingle renderer =
                     _ ->
                         Nothing
 
-            Block.UnorderedList items ->
+            Block.UnorderedList loose items ->
                 items
                     |> List.map
                         (\(Block.ListItem task children) ->
                             children
-                                |> renderStyled renderer
+                                |> (\listItemBlocks ->
+                                        List.filterMap
+                                            (\listItemBlock ->
+                                                case ( loose, listItemBlock ) of
+                                                    ( Block.IsTight, Block.Paragraph content ) ->
+                                                        renderStyled renderer content |> Just
+
+                                                    _ ->
+                                                        renderHelperSingle renderer listItemBlock
+                                                            |> Maybe.map (Result.map List.singleton)
+                                            )
+                                            listItemBlocks
+                                   )
+                                |> combineResults
                                 |> Result.map (\renderedBody -> Block.ListItem task renderedBody)
                         )
                     |> combineResults
                     |> Result.map renderer.unorderedList
                     |> Just
 
-            Block.OrderedList startingIndex items ->
+            Block.OrderedList startingIndex loose items ->
                 items
-                    |> List.map (renderStyled renderer)
+                    --|> List.concatMap (renderHelper renderer)
+                    |> List.map
+                        (\children ->
+                            children
+                                |> (\listItemBlocks ->
+                                        List.filterMap
+                                            (\listItemBlock ->
+                                                case ( loose, listItemBlock ) of
+                                                    ( Block.IsTight, Block.Paragraph content ) ->
+                                                        renderStyled renderer content |> Just
+
+                                                    _ ->
+                                                        renderHelperSingle renderer listItemBlock
+                                                            |> Maybe.map (Result.map List.singleton)
+                                            )
+                                            listItemBlocks
+                                   )
+                                |> combineResults
+                        )
                     |> combineResults
                     |> Result.map (renderer.orderedList startingIndex)
                     |> Just

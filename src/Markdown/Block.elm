@@ -7,6 +7,7 @@ module Markdown.Block exposing
     , HtmlAttribute
     , extractInlineText
     , walk, walkInlines, validateMapInlines, mapAndAccumulate, foldl
+    , Loose(..)
     )
 
 {-|
@@ -77,8 +78,8 @@ In the simplest case, you can pass this directly to a renderer:
 type Block
     = -- Container Blocks
       HtmlBlock (Html Block)
-    | UnorderedList (List (ListItem Inline))
-    | OrderedList Int (List (List Inline))
+    | UnorderedList Loose (List (ListItem Block))
+    | OrderedList Int Loose (List (List Block))
     | BlockQuote (List Block)
       -- Leaf Blocks With Inlines
     | Heading HeadingLevel (List Inline)
@@ -101,6 +102,11 @@ type Alignment
 -}
 type ListItem children
     = ListItem Task (List children)
+
+
+type Loose
+    = IsLoose
+    | IsTight
 
 
 {-| A task (or no task), which may be contained in a ListItem.
@@ -242,17 +248,20 @@ extractInlineBlockText block =
                 _ ->
                     ""
 
-        UnorderedList items ->
+        UnorderedList _ items ->
             items
                 |> List.map
-                    (\(ListItem task inlines) ->
-                        extractInlineText inlines
+                    (\(ListItem _ blocks) ->
+                        blocks
+                            |> List.map extractInlineBlockText
+                            |> String.join "\n"
                     )
                 |> String.join "\n"
 
-        OrderedList int items ->
+        OrderedList _ _ items ->
             items
-                |> List.map extractInlineText
+                |> List.map
+                    (List.map extractInlineBlockText >> String.join "\n")
                 |> String.join "\n"
 
         BlockQuote blocks ->
@@ -399,19 +408,19 @@ walkInlinesHelp function block =
             List.map (inlineParserWalk function) inlines
                 |> Paragraph
 
-        UnorderedList listItems ->
+        UnorderedList isLoose listItems ->
             List.map
                 (\(ListItem task children) ->
-                    ListItem task (List.map (inlineParserWalk function) children)
+                    ListItem task (List.map (walkInlinesHelp function) children)
                 )
                 listItems
-                |> UnorderedList
+                |> UnorderedList isLoose
 
-        OrderedList startingIndex listItems ->
+        OrderedList startingIndex isLoose listItems ->
             List.map
-                (List.map (inlineParserWalk function))
+                (List.map (walkInlinesHelp function))
                 listItems
-                |> OrderedList startingIndex
+                |> OrderedList startingIndex isLoose
 
         BlockQuote children ->
             BlockQuote (List.map (walkInlinesHelp function) children)
@@ -582,24 +591,24 @@ inlineParserValidateWalkBlock function block =
                 _ ->
                     Ok block
 
-        UnorderedList items ->
+        UnorderedList isLoose items ->
             items
                 |> List.map
                     (\(ListItem task item) ->
                         item
-                            |> List.map (inlineParserValidateWalk function)
+                            |> List.map (inlineParserValidateWalkBlock function)
                             |> combine
                             |> Result.map (ListItem task)
                     )
                 |> combine
-                |> Result.map UnorderedList
+                |> Result.map (UnorderedList isLoose)
 
-        OrderedList startingIndex lists ->
+        OrderedList startingIndex isLoose lists ->
             lists
-                |> List.map (List.map (inlineParserValidateWalk function))
+                |> List.map (List.map (inlineParserValidateWalkBlock function))
                 |> List.map combine
                 |> combine
-                |> Result.map (OrderedList startingIndex)
+                |> Result.map (OrderedList startingIndex isLoose)
 
         BlockQuote nestedBlocks ->
             nestedBlocks
@@ -711,11 +720,19 @@ walk function block =
                 _ ->
                     function block
 
-        UnorderedList _ ->
-            function block
+        UnorderedList isLoose listItems ->
+            List.map
+                (\(ListItem task children) ->
+                    ListItem task (List.map (walk function) children)
+                )
+                listItems
+                |> UnorderedList isLoose
+                |> function
 
-        OrderedList _ _ ->
-            function block
+        OrderedList startingIndex isLoose listItems ->
+            List.map (List.map (walk function)) listItems
+                |> OrderedList startingIndex isLoose
+                |> function
 
         -- These cases don't have nested blocks
         -- So no recursion needed
@@ -877,10 +894,12 @@ foldl function acc list =
                         _ ->
                             foldl function (function block acc) remainingBlocks
 
-                UnorderedList listItems ->
+                UnorderedList _ listItems ->
+                    -- TODO: recurse
                     foldl function (function block acc) remainingBlocks
 
-                OrderedList int lists ->
+                OrderedList int _ lists ->
+                    -- TODO: recurse
                     foldl function (function block acc) remainingBlocks
 
                 BlockQuote blocks ->

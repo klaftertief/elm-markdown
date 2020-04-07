@@ -21,10 +21,10 @@ type RawBlock
     | UnorderedListBlock
         (List
             { task : Maybe Bool
-            , body : UnparsedInlines
+            , body : String
             }
         )
-    | OrderedListBlock Int (List UnparsedInlines)
+    | OrderedListBlock Int (List String)
     | CodeBlock CodeBlock
     | IndentedCodeBlock String
     | ThematicBreak

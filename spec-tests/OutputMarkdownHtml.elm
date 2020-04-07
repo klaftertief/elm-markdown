@@ -145,7 +145,7 @@ renderMarkdown markdown =
                                                                 ]
                                                                 []
                                             in
-                                            Html.li [] (checkbox :: children)
+                                            Html.li [] (checkbox :: (List.concat children))
                                 )
                         )
             , orderedList =
@@ -161,7 +161,7 @@ renderMarkdown markdown =
                             |> List.map
                                 (\itemBlocks ->
                                     Html.li []
-                                        itemBlocks
+                                        (List.concat itemBlocks)
                                 )
                         )
             , html =
