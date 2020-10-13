@@ -59,10 +59,10 @@ testRenderer htmlRenderer =
         \_ ->
             Unexpected "String"
     , unorderedList =
-        \items ->
+        \isLoose items ->
             Unexpected "String"
     , orderedList =
-        \startingIndex items ->
+        \isLoose startingIndex items ->
             Unexpected "String"
     , html = Markdown.Html.oneOf htmlRenderer
     , codeBlock =

@@ -1,7 +1,8 @@
 module Markdown.Block exposing
     ( Block(..)
     , HeadingLevel(..), headingLevelToInt
-    , ListItem(..), Task(..), Alignment(..)
+    , ListItem(..), Task(..), Loose(..)
+    , Alignment(..)
     , Html(..)
     , Inline(..)
     , HtmlAttribute
@@ -17,7 +18,12 @@ module Markdown.Block exposing
 
 ### List Items
 
-@docs ListItem, Task, Alignment
+@docs ListItem, Task, Loose
+
+
+### Tables
+
+@docs Alignment
 
 
 ## HTML
@@ -77,8 +83,8 @@ In the simplest case, you can pass this directly to a renderer:
 type Block
     = -- Container Blocks
       HtmlBlock (Html Block)
-    | UnorderedList (List (ListItem Inline))
-    | OrderedList Int (List (List Inline))
+    | UnorderedList Loose (List (ListItem Inline))
+    | OrderedList Int Loose (List (List Inline))
     | BlockQuote (List Block)
       -- Leaf Blocks With Inlines
     | Heading HeadingLevel (List Inline)
@@ -101,6 +107,13 @@ type Alignment
 -}
 type ListItem children
     = ListItem Task (List children)
+
+
+{-| Whether a list is loose or tight.
+-}
+type Loose
+    = IsLoose
+    | IsTight
 
 
 {-| A task (or no task), which may be contained in a ListItem.
@@ -242,7 +255,7 @@ extractInlineBlockText block =
                 _ ->
                     ""
 
-        UnorderedList items ->
+        UnorderedList _ items ->
             items
                 |> List.map
                     (\(ListItem task inlines) ->
@@ -250,7 +263,7 @@ extractInlineBlockText block =
                     )
                 |> String.join "\n"
 
-        OrderedList int items ->
+        OrderedList int _ items ->
             items
                 |> List.map extractInlineText
                 |> String.join "\n"
@@ -401,19 +414,19 @@ walkInlinesHelp function block =
             List.map (inlineParserWalk function) inlines
                 |> Paragraph
 
-        UnorderedList listItems ->
+        UnorderedList isLoose listItems ->
             List.map
                 (\(ListItem task children) ->
                     ListItem task (List.map (inlineParserWalk function) children)
                 )
                 listItems
-                |> UnorderedList
+                |> UnorderedList isLoose
 
-        OrderedList startingIndex listItems ->
+        OrderedList startingIndex isLoose listItems ->
             List.map
                 (List.map (inlineParserWalk function))
                 listItems
-                |> OrderedList startingIndex
+                |> OrderedList startingIndex isLoose
 
         BlockQuote children ->
             BlockQuote (List.map (walkInlinesHelp function) children)
@@ -578,7 +591,7 @@ inlineParserValidateWalkBlock function block =
                 _ ->
                     Ok block
 
-        UnorderedList items ->
+        UnorderedList isLoose items ->
             items
                 |> traverse
                     (\(ListItem task item) ->
@@ -586,12 +599,12 @@ inlineParserValidateWalkBlock function block =
                             |> traverse (inlineParserValidateWalk function)
                             |> Result.map (ListItem task)
                     )
-                |> Result.map UnorderedList
+                |> Result.map (UnorderedList isLoose)
 
-        OrderedList startingIndex lists ->
+        OrderedList startingIndex isLoose lists ->
             lists
                 |> traverse (traverse (inlineParserValidateWalk function))
-                |> Result.map (OrderedList startingIndex)
+                |> Result.map (OrderedList startingIndex isLoose)
 
         BlockQuote nestedBlocks ->
             nestedBlocks
@@ -695,10 +708,12 @@ walk function block =
                 _ ->
                     function block
 
-        UnorderedList _ ->
+        UnorderedList _ _ ->
+            -- TODO: recurse once the children are blocks
             function block
 
-        OrderedList _ _ ->
+        OrderedList _ _ _ ->
+            -- TODO: recurse once the children are blocks
             function block
 
         -- These cases don't have nested blocks
@@ -862,10 +877,10 @@ foldl function acc list =
                         _ ->
                             foldl function (function block acc) remainingBlocks
 
-                UnorderedList listItems ->
+                UnorderedList _ listItems ->
                     foldl function (function block acc) remainingBlocks
 
-                OrderedList int lists ->
+                OrderedList int _ lists ->
                     foldl function (function block acc) remainingBlocks
 
                 BlockQuote blocks ->
@@ -991,7 +1006,7 @@ inlineFoldl ifunction top_acc list =
                     HtmlBlock html ->
                         acc
 
-                    UnorderedList listItems ->
+                    UnorderedList _ listItems ->
                         List.foldl
                             (\(ListItem _ inlines) liacc ->
                                 List.foldl function liacc inlines
@@ -999,7 +1014,7 @@ inlineFoldl ifunction top_acc list =
                             acc
                             listItems
 
-                    OrderedList int lists ->
+                    OrderedList int _ lists ->
                         List.foldl
                             (\inlines lacc ->
                                 List.foldl function lacc inlines

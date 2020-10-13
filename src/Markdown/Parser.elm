@@ -267,13 +267,15 @@ parseInlines linkReferences rawBlock =
             in
             unparsedItems
                 |> List.map parseItem
-                |> Block.UnorderedList
+                -- TODO: parse whether is loose
+                |> Block.UnorderedList Block.IsTight
                 |> ParsedBlock
 
         OrderedListBlock startingIndex unparsedInlines ->
             unparsedInlines
                 |> List.map (parseRawInline linkReferences identity)
-                |> Block.OrderedList startingIndex
+                -- TODO: parse whether is loose
+                |> Block.OrderedList startingIndex Block.IsTight
                 |> ParsedBlock
 
         CodeBlock codeBlock ->

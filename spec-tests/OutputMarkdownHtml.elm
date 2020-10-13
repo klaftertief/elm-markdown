@@ -116,7 +116,7 @@ renderMarkdown markdown =
             , text =
                 Html.text
             , unorderedList =
-                \items ->
+                \isLoose items ->
                     Html.ul []
                         (items
                             |> List.map
@@ -144,12 +144,20 @@ renderMarkdown markdown =
                                                                 , Attr.type_ "checkbox"
                                                                 ]
                                                                 []
+
+                                                wrappedChildren =
+                                                    case isLoose of
+                                                        Block.IsLoose ->
+                                                            [ Html.p [] children ]
+
+                                                        Block.IsTight ->
+                                                            children
                                             in
-                                            Html.li [] (checkbox :: children)
+                                            Html.li [] (checkbox :: wrappedChildren)
                                 )
                         )
             , orderedList =
-                \startingIndex items ->
+                \startingIndex isLoose items ->
                     Html.ol
                         (if startingIndex /= 1 then
                             [ Attr.start startingIndex ]
@@ -161,7 +169,13 @@ renderMarkdown markdown =
                             |> List.map
                                 (\itemBlocks ->
                                     Html.li []
-                                        itemBlocks
+                                        (case isLoose of
+                                            Block.IsLoose ->
+                                                [ Html.p [] itemBlocks ]
+
+                                            Block.IsTight ->
+                                                itemBlocks
+                                        )
                                 )
                         )
             , html =

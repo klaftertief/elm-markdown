@@ -50,8 +50,8 @@ type alias Renderer view =
     , hardLineBreak : view
     , link : { title : Maybe String, destination : String } -> List view -> view
     , image : { alt : String, src : String, title : Maybe String } -> view
-    , unorderedList : List (ListItem view) -> view
-    , orderedList : Int -> List (List view) -> view
+    , unorderedList : Block.Loose -> List (ListItem view) -> view
+    , orderedList : Int -> Block.Loose -> List (List view) -> view
     , codeBlock : { body : String, language : Maybe String } -> view
     , thematicBreak : view
     , table : List view -> view
@@ -129,7 +129,7 @@ defaultHtmlRenderer =
     , text =
         Html.text
     , unorderedList =
-        \items ->
+        \isLoose items ->
             Html.ul []
                 (items
                     |> List.map
@@ -157,12 +157,20 @@ defaultHtmlRenderer =
                                                         , Attr.type_ "checkbox"
                                                         ]
                                                         []
+
+                                        wrappedChildren =
+                                            case isLoose of
+                                                Block.IsLoose ->
+                                                    [ Html.p [] children ]
+
+                                                Block.IsTight ->
+                                                    children
                                     in
-                                    Html.li [] (checkbox :: children)
+                                    Html.li [] (checkbox :: wrappedChildren)
                         )
                 )
     , orderedList =
-        \startingIndex items ->
+        \startingIndex isLoose items ->
             Html.ol
                 (case startingIndex of
                     1 ->
@@ -175,7 +183,13 @@ defaultHtmlRenderer =
                     |> List.map
                         (\itemBlocks ->
                             Html.li []
-                                itemBlocks
+                                (case isLoose of
+                                    Block.IsLoose ->
+                                        [ Html.p [] itemBlocks ]
+
+                                    Block.IsTight ->
+                                        itemBlocks
+                                )
                         )
                 )
     , html = Markdown.Html.oneOf []
@@ -354,7 +368,7 @@ renderHelperSingle renderer =
                     _ ->
                         Nothing
 
-            Block.UnorderedList items ->
+            Block.UnorderedList isLoose items ->
                 items
                     |> List.map
                         (\(Block.ListItem task children) ->
@@ -363,14 +377,14 @@ renderHelperSingle renderer =
                                 |> Result.map (\renderedBody -> Block.ListItem task renderedBody)
                         )
                     |> combineResults
-                    |> Result.map renderer.unorderedList
+                    |> Result.map (renderer.unorderedList isLoose)
                     |> Just
 
-            Block.OrderedList startingIndex items ->
+            Block.OrderedList startingIndex isLoose items ->
                 items
                     |> List.map (renderStyled renderer)
                     |> combineResults
-                    |> Result.map (renderer.orderedList startingIndex)
+                    |> Result.map (renderer.orderedList startingIndex isLoose)
                     |> Just
 
             Block.CodeBlock codeBlock ->
