@@ -1,7 +1,7 @@
 module Markdown.OrderedList exposing (parser)
 
 import Helpers
-import Markdown.RawBlock exposing (RawBlock(..))
+import Markdown.Block
 import Parser
 import Parser.Advanced as Advanced exposing (..)
 import Parser.Extra exposing (oneOrMore)
@@ -16,7 +16,7 @@ type alias ListItem =
     String
 
 
-parser : Bool -> Parser ( Int, List ListItem )
+parser : Bool -> Parser ( Int, Markdown.Block.Loose, List ListItem )
 parser previousWasBody =
     succeed parseSubsequentItems
         -- NOTE this is only a list item when there is at least one space after the marker
@@ -40,6 +40,8 @@ parser previousWasBody =
         |= Advanced.getChompedString (Advanced.chompUntilEndOr "\n")
         |. endOrNewline
         |> andThen identity
+        -- TODO: parse whether is loose
+        |> map (\( startingIndex, unparsedInlines ) -> ( startingIndex, Markdown.Block.IsTight, unparsedInlines ))
 
 
 parseSubsequentItems : Int -> Token Parser.Problem -> ListItem -> Parser ( Int, List ListItem )

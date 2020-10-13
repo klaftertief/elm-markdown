@@ -1,4 +1,4 @@
-module Markdown.RawBlock exposing (Attribute, RawBlock(..), UnparsedInlines(..), SetextLevel(..))
+module Markdown.RawBlock exposing (Attribute, RawBlock(..), SetextLevel(..), UnparsedInlines(..))
 
 import Markdown.Block exposing (Block)
 import Markdown.CodeBlock exposing (CodeBlock)
@@ -24,12 +24,13 @@ type RawBlock
     | OpenBlockOrParagraph UnparsedInlines
     | Html (Markdown.Block.Html Block)
     | UnorderedListBlock
+        Markdown.Block.Loose
         (List
             { task : Maybe Bool
             , body : UnparsedInlines
             }
         )
-    | OrderedListBlock Int (List UnparsedInlines)
+    | OrderedListBlock Int Markdown.Block.Loose (List UnparsedInlines)
     | CodeBlock CodeBlock
     | IndentedCodeBlock String
     | ThematicBreak

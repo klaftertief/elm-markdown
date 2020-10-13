@@ -1,6 +1,7 @@
 module Markdown.UnorderedList exposing (parser)
 
 import Helpers
+import Markdown.Block
 import Markdown.ListItem as ListItem exposing (ListItem)
 import Parser
 import Parser.Advanced as Advanced exposing (..)
@@ -12,7 +13,7 @@ type alias Parser a =
     Advanced.Parser String Parser.Problem a
 
 
-parser : Parser (List ListItem)
+parser : Parser ( Markdown.Block.Loose, List ListItem )
 parser =
     let
         parseSubsequentItems listMarker firstItem =
@@ -23,6 +24,8 @@ parser =
         |. oneOrMore Helpers.isSpaceOrTab
         |= ListItem.parser
         |> andThen identity
+        -- TODO: parse whether is loose
+        |> map (\listItems -> ( Markdown.Block.IsTight, listItems ))
 
 
 listMarkerParser : Parser (Token Parser.Problem)

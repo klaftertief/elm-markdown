@@ -245,7 +245,7 @@ parseInlines linkReferences rawBlock =
             Block.HtmlBlock html
                 |> ParsedBlock
 
-        UnorderedListBlock unparsedItems ->
+        UnorderedListBlock isLoose unparsedItems ->
             let
                 parseItem unparsed =
                     let
@@ -267,15 +267,13 @@ parseInlines linkReferences rawBlock =
             in
             unparsedItems
                 |> List.map parseItem
-                -- TODO: parse whether is loose
-                |> Block.UnorderedList Block.IsTight
+                |> Block.UnorderedList isLoose
                 |> ParsedBlock
 
-        OrderedListBlock startingIndex unparsedInlines ->
+        OrderedListBlock startingIndex isLoose unparsedInlines ->
             unparsedInlines
                 |> List.map (parseRawInline linkReferences identity)
-                -- TODO: parse whether is loose
-                |> Block.OrderedList startingIndex Block.IsTight
+                |> Block.OrderedList startingIndex isLoose
                 |> ParsedBlock
 
         CodeBlock codeBlock ->
@@ -423,13 +421,13 @@ unorderedListBlock =
                     }
     in
     Markdown.UnorderedList.parser
-        |> map (List.map parseListItem >> UnorderedListBlock)
+        |> map (\( isLoose, unparsedLines ) -> UnorderedListBlock isLoose (List.map parseListItem unparsedLines))
 
 
 orderedListBlock : Bool -> Parser RawBlock
 orderedListBlock previousWasBody =
     Markdown.OrderedList.parser previousWasBody
-        |> map (\( startingIndex, unparsedLines ) -> OrderedListBlock startingIndex (List.map UnparsedInlines unparsedLines))
+        |> map (\( startingIndex, isLoose, unparsedLines ) -> OrderedListBlock startingIndex isLoose (List.map UnparsedInlines unparsedLines))
 
 
 blankLine : Parser RawBlock
