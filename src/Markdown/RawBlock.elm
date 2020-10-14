@@ -27,10 +27,10 @@ type RawBlock
         Markdown.Block.Loose
         (List
             { task : Maybe Bool
-            , body : UnparsedInlines
+            , body : String
             }
         )
-    | OrderedListBlock Int Markdown.Block.Loose (List UnparsedInlines)
+    | OrderedListBlock Int Markdown.Block.Loose (List String)
     | CodeBlock CodeBlock
     | IndentedCodeBlock String
     | ThematicBreak

@@ -373,6 +373,28 @@ But instead was:
 ````````````html
 <p>-</p><p>foo</p>
 ````````````
+## [Example 253](https://spec.commonmark.org/0.29/#example-253)
+
+This markdown:
+
+````````````markdown
+1. foo
+2.
+3. bar
+
+````````````
+
+Should give output:
+
+````````````html
+<ol><li>foo</li><li></li><li>bar</li></ol>
+````````````
+
+But instead was:
+
+````````````html
+<ol><li>foo</li><li>bar</li></ol>
+````````````
 ## [Example 254](https://spec.commonmark.org/0.29/#example-254)
 
 This markdown:
@@ -558,7 +580,7 @@ Should give output:
 But instead was:
 
 ````````````html
-<blockquote><ol><li>&gt; Blockquote</li></ol><p>continued here.</p></blockquote>
+<blockquote><ol><li><blockquote><p>Blockquote</p></blockquote></li></ol><p>continued here.</p></blockquote>
 ````````````
 ## [Example 263](https://spec.commonmark.org/0.29/#example-263)
 
@@ -579,7 +601,7 @@ Should give output:
 But instead was:
 
 ````````````html
-<blockquote><ol><li>&gt; Blockquote</li></ol><p>continued here.</p></blockquote>
+<blockquote><ol><li><blockquote><p>Blockquote</p></blockquote></li></ol><p>continued here.</p></blockquote>
 ````````````
 ## [Example 264](https://spec.commonmark.org/0.29/#example-264)
 
@@ -669,46 +691,6 @@ But instead was:
 ````````````html
 <ol start="10"><li>foo</li></ol><p>- bar</p>
 ````````````
-## [Example 268](https://spec.commonmark.org/0.29/#example-268)
-
-This markdown:
-
-````````````markdown
-- - foo
-
-````````````
-
-Should give output:
-
-````````````html
-<ul><li><ul><li>foo</li></ul></li></ul>
-````````````
-
-But instead was:
-
-````````````html
-<ul><li>- foo</li></ul>
-````````````
-## [Example 269](https://spec.commonmark.org/0.29/#example-269)
-
-This markdown:
-
-````````````markdown
-1. - 2. foo
-
-````````````
-
-Should give output:
-
-````````````html
-<ol><li><ul><li><ol start="2"><li>foo</li></ol></li></ul></li></ol>
-````````````
-
-But instead was:
-
-````````````html
-<ol><li>- 2. foo</li></ol>
-````````````
 ## [Example 270](https://spec.commonmark.org/0.29/#example-270)
 
 This markdown:
@@ -730,5 +712,5 @@ Should give output:
 But instead was:
 
 ````````````html
-<ul><li># Foo</li><li>Bar</li></ul><hr><p>baz</p>
+<ul><li><h1>Foo</h1></li><li>Bar</li></ul><hr><p>baz</p>
 ````````````

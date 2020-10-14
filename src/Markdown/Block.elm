@@ -83,8 +83,8 @@ In the simplest case, you can pass this directly to a renderer:
 type Block
     = -- Container Blocks
       HtmlBlock (Html Block)
-    | UnorderedList Loose (List (ListItem Inline))
-    | OrderedList Int Loose (List (List Inline))
+    | UnorderedList Loose (List (ListItem Block))
+    | OrderedList Int Loose (List (List Block))
     | BlockQuote (List Block)
       -- Leaf Blocks With Inlines
     | Heading HeadingLevel (List Inline)
@@ -257,15 +257,16 @@ extractInlineBlockText block =
 
         UnorderedList _ items ->
             items
-                |> List.map
-                    (\(ListItem task inlines) ->
-                        extractInlineText inlines
+                |> List.concatMap
+                    (\(ListItem task children) ->
+                        List.map extractInlineBlockText children
                     )
                 |> String.join "\n"
 
         OrderedList int _ items ->
             items
-                |> List.map extractInlineText
+                |> List.concat
+                |> List.map extractInlineBlockText
                 |> String.join "\n"
 
         BlockQuote blocks ->
@@ -417,14 +418,14 @@ walkInlinesHelp function block =
         UnorderedList isLoose listItems ->
             List.map
                 (\(ListItem task children) ->
-                    ListItem task (List.map (inlineParserWalk function) children)
+                    ListItem task (List.map (walkInlinesHelp function) children)
                 )
                 listItems
                 |> UnorderedList isLoose
 
         OrderedList startingIndex isLoose listItems ->
             List.map
-                (List.map (inlineParserWalk function))
+                (List.map (walkInlinesHelp function))
                 listItems
                 |> OrderedList startingIndex isLoose
 
@@ -596,14 +597,14 @@ inlineParserValidateWalkBlock function block =
                 |> traverse
                     (\(ListItem task item) ->
                         item
-                            |> traverse (inlineParserValidateWalk function)
+                            |> traverse (inlineParserValidateWalkBlock function)
                             |> Result.map (ListItem task)
                     )
                 |> Result.map (UnorderedList isLoose)
 
         OrderedList startingIndex isLoose lists ->
             lists
-                |> traverse (traverse (inlineParserValidateWalk function))
+                |> traverse (traverse (inlineParserValidateWalkBlock function))
                 |> Result.map (OrderedList startingIndex isLoose)
 
         BlockQuote nestedBlocks ->
@@ -936,127 +937,128 @@ inlineFoldl ifunction top_acc list =
         -- change a simple inline accum function to one that will fold over
         -- inlines contained within other inlines.
         inlineFoldF : (Inline -> acc -> acc) -> Inline -> acc -> acc
-        inlineFoldF =
-            \ifn inline acc ->
-                case inline of
-                    HtmlInline hblock ->
-                        let
-                            hiacc =
-                                ifn inline acc
-                        in
-                        case hblock of
-                            HtmlElement _ _ blocks ->
-                                inlineFoldl ifn hiacc blocks
+        inlineFoldF ifn inline acc =
+            case inline of
+                HtmlInline hblock ->
+                    let
+                        hiacc =
+                            ifn inline acc
+                    in
+                    case hblock of
+                        HtmlElement _ _ blocks ->
+                            inlineFoldl ifn hiacc blocks
 
-                            HtmlComment _ ->
-                                ifn inline hiacc
+                        HtmlComment _ ->
+                            ifn inline hiacc
 
-                            ProcessingInstruction _ ->
-                                ifn inline hiacc
+                        ProcessingInstruction _ ->
+                            ifn inline hiacc
 
-                            HtmlDeclaration _ _ ->
-                                ifn inline hiacc
+                        HtmlDeclaration _ _ ->
+                            ifn inline hiacc
 
-                            Cdata _ ->
-                                ifn inline hiacc
+                        Cdata _ ->
+                            ifn inline hiacc
 
-                    Link _ _ inlines ->
-                        let
-                            iacc =
-                                ifn inline acc
-                        in
-                        List.foldl ifn iacc inlines
+                Link _ _ inlines ->
+                    let
+                        iacc =
+                            ifn inline acc
+                    in
+                    List.foldl ifn iacc inlines
 
-                    Image _ _ inlines ->
-                        let
-                            iacc =
-                                ifn inline acc
-                        in
-                        List.foldl ifn iacc inlines
+                Image _ _ inlines ->
+                    let
+                        iacc =
+                            ifn inline acc
+                    in
+                    List.foldl ifn iacc inlines
 
-                    Emphasis inlines ->
-                        let
-                            iacc =
-                                ifn inline acc
-                        in
-                        List.foldl ifn iacc inlines
+                Emphasis inlines ->
+                    let
+                        iacc =
+                            ifn inline acc
+                    in
+                    List.foldl ifn iacc inlines
 
-                    Strong inlines ->
-                        let
-                            iacc =
-                                ifn inline acc
-                        in
-                        List.foldl ifn iacc inlines
+                Strong inlines ->
+                    let
+                        iacc =
+                            ifn inline acc
+                    in
+                    List.foldl ifn iacc inlines
 
-                    CodeSpan _ ->
-                        ifn inline acc
+                CodeSpan _ ->
+                    ifn inline acc
 
-                    Text _ ->
-                        ifn inline acc
+                Text _ ->
+                    ifn inline acc
 
-                    HardLineBreak ->
-                        ifn inline acc
+                HardLineBreak ->
+                    ifn inline acc
 
         function =
             inlineFoldF ifunction
 
-        bfn =
-            \block acc ->
-                case block of
-                    HtmlBlock html ->
-                        acc
+        bfn : Block -> acc -> acc
+        bfn block acc =
+            case block of
+                HtmlBlock html ->
+                    acc
 
-                    UnorderedList _ listItems ->
-                        List.foldl
-                            (\(ListItem _ inlines) liacc ->
-                                List.foldl function liacc inlines
-                            )
-                            acc
-                            listItems
+                UnorderedList _ listItems ->
+                    --List.foldl
+                    --    (\(ListItem _ inlines) liacc ->
+                    --        List.foldl function liacc inlines
+                    --    )
+                    --    acc
+                    --    listItems
+                    acc
 
-                    OrderedList int _ lists ->
-                        List.foldl
-                            (\inlines lacc ->
-                                List.foldl function lacc inlines
-                            )
-                            acc
-                            lists
+                OrderedList int _ lists ->
+                    --List.foldl
+                    --    (\inlines lacc ->
+                    --        List.foldl function lacc inlines
+                    --    )
+                    --    acc
+                    --    lists
+                    acc
 
-                    BlockQuote _ ->
-                        acc
+                BlockQuote _ ->
+                    acc
 
-                    Heading _ inlines ->
-                        List.foldl function acc inlines
+                Heading _ inlines ->
+                    List.foldl function acc inlines
 
-                    Paragraph inlines ->
-                        List.foldl function acc inlines
+                Paragraph inlines ->
+                    List.foldl function acc inlines
 
-                    Table labels listlists ->
-                        let
-                            llacc =
-                                List.foldl
-                                    (\inlines iacc ->
-                                        List.foldl function iacc inlines
-                                    )
-                                    acc
-                                    (List.map .label labels)
-                        in
-                        List.foldl
-                            (\lists lacc ->
-                                List.foldl
-                                    (\inlines iacc ->
-                                        List.foldl function iacc inlines
-                                    )
-                                    lacc
-                                    lists
-                            )
-                            llacc
-                            listlists
+                Table labels listlists ->
+                    let
+                        llacc =
+                            List.foldl
+                                (\inlines iacc ->
+                                    List.foldl function iacc inlines
+                                )
+                                acc
+                                (List.map .label labels)
+                    in
+                    List.foldl
+                        (\lists lacc ->
+                            List.foldl
+                                (\inlines iacc ->
+                                    List.foldl function iacc inlines
+                                )
+                                lacc
+                                lists
+                        )
+                        llacc
+                        listlists
 
-                    CodeBlock _ ->
-                        acc
+                CodeBlock _ ->
+                    acc
 
-                    ThematicBreak ->
-                        acc
+                ThematicBreak ->
+                    acc
     in
     foldl bfn top_acc list

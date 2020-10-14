@@ -50,8 +50,8 @@ type alias Renderer view =
     , hardLineBreak : view
     , link : { title : Maybe String, destination : String } -> List view -> view
     , image : { alt : String, src : String, title : Maybe String } -> view
-    , unorderedList : Block.Loose -> List (ListItem view) -> view
-    , orderedList : Int -> Block.Loose -> List (List view) -> view
+    , unorderedList : List (ListItem view) -> view
+    , orderedList : Int -> List (List view) -> view
     , codeBlock : { body : String, language : Maybe String } -> view
     , thematicBreak : view
     , table : List view -> view
@@ -129,7 +129,7 @@ defaultHtmlRenderer =
     , text =
         Html.text
     , unorderedList =
-        \isLoose items ->
+        \items ->
             Html.ul []
                 (items
                     |> List.map
@@ -157,20 +157,12 @@ defaultHtmlRenderer =
                                                         , Attr.type_ "checkbox"
                                                         ]
                                                         []
-
-                                        wrappedChildren =
-                                            case isLoose of
-                                                Block.IsLoose ->
-                                                    [ Html.p [] children ]
-
-                                                Block.IsTight ->
-                                                    children
                                     in
-                                    Html.li [] (checkbox :: wrappedChildren)
+                                    Html.li [] (checkbox :: children)
                         )
                 )
     , orderedList =
-        \startingIndex isLoose items ->
+        \startingIndex items ->
             Html.ol
                 (case startingIndex of
                     1 ->
@@ -179,19 +171,7 @@ defaultHtmlRenderer =
                     _ ->
                         []
                 )
-                (items
-                    |> List.map
-                        (\itemBlocks ->
-                            Html.li []
-                                (case isLoose of
-                                    Block.IsLoose ->
-                                        [ Html.p [] itemBlocks ]
-
-                                    Block.IsTight ->
-                                        itemBlocks
-                                )
-                        )
-                )
+                (items |> List.map (Html.li []))
     , html = Markdown.Html.oneOf []
     , codeBlock =
         \{ body, language } ->
@@ -373,18 +353,56 @@ renderHelperSingle renderer =
                     |> List.map
                         (\(Block.ListItem task children) ->
                             children
-                                |> renderStyled renderer
-                                |> Result.map (\renderedBody -> Block.ListItem task renderedBody)
+                                --|> renderHelper renderer
+                                |> (\blocks ->
+                                        List.filterMap
+                                            (\listItemBlock ->
+                                                case ( isLoose, listItemBlock ) of
+                                                    ( Block.IsTight, Block.Paragraph content ) ->
+                                                        renderStyled renderer content |> Just
+
+                                                    _ ->
+                                                        renderHelperSingle renderer listItemBlock
+                                                            |> Maybe.map (Result.map List.singleton)
+                                            )
+                                            blocks
+                                   )
+                                |> combineResults
+                                |> Result.map (Block.ListItem task)
                         )
                     |> combineResults
-                    |> Result.map (renderer.unorderedList isLoose)
+                    --|> Result.map (renderer.unorderedList isLoose)
+                    |> Result.map
+                        (\listItems ->
+                            listItems
+                                |> List.map
+                                    (\(Block.ListItem task children) ->
+                                        Block.ListItem task (List.concat children)
+                                    )
+                                |> renderer.unorderedList
+                        )
                     |> Just
 
             Block.OrderedList startingIndex isLoose items ->
                 items
-                    |> List.map (renderStyled renderer)
+                    --|> List.concatMap (renderHelper renderer)
+                    |> List.concatMap
+                        (\blocks ->
+                            List.filterMap
+                                (\listItemBlock ->
+                                    case ( isLoose, listItemBlock ) of
+                                        ( Block.IsTight, Block.Paragraph content ) ->
+                                            renderStyled renderer content |> Just
+
+                                        _ ->
+                                            renderHelperSingle renderer listItemBlock
+                                                |> Maybe.map (Result.map List.singleton)
+                                )
+                                blocks
+                        )
                     |> combineResults
-                    |> Result.map (renderer.orderedList startingIndex isLoose)
+                    --|> Result.map (List.singleton >> renderer.orderedList startingIndex isLoose)
+                    |> Result.map (renderer.orderedList startingIndex)
                     |> Just
 
             Block.CodeBlock codeBlock ->

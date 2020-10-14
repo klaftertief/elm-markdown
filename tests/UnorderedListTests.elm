@@ -1,6 +1,7 @@
 module UnorderedListTests exposing (suite)
 
 import Expect exposing (Expectation)
+import Markdown.Block
 import Markdown.ListItem as ListItem exposing (ListItem)
 import Markdown.Parser
 import Markdown.UnorderedList
@@ -25,10 +26,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "list that ends without newline" <|
             \() ->
@@ -38,10 +41,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "basic list with '+'" <|
             \() ->
@@ -52,10 +57,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "basic list with '*'" <|
             \() ->
@@ -66,10 +73,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "sibling lists with different markers" <|
             \() ->
@@ -86,10 +95,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "A list item with emphasis in it and starting with '*'" <|
             \() ->
@@ -101,10 +112,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "Item 1 is *emphasized*"
-                            , plainItem "Item 2"
-                            , plainItem "Item 3"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1 is *emphasized*"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
                         )
         , test "When there is an empty item" <|
             \() ->
@@ -115,10 +128,12 @@ suite =
                     |> Advanced.run Markdown.UnorderedList.parser
                     |> Expect.equal
                         (Ok
-                            [ plainItem "foo"
-                            , plainItem ""
-                            , plainItem "bar"
-                            ]
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "foo"
+                              , plainItem ""
+                              , plainItem "bar"
+                              ]
+                            )
                         )
         ]
 

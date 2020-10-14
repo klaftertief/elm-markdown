@@ -245,7 +245,7 @@ parseInlines linkReferences rawBlock =
             Block.HtmlBlock html
                 |> ParsedBlock
 
-        UnorderedListBlock isLoose unparsedItems ->
+        UnorderedListBlock isLoose rawBlocksList ->
             let
                 parseItem unparsed =
                     let
@@ -265,16 +265,65 @@ parseInlines linkReferences rawBlock =
                     in
                     Block.ListItem task parsedInlines
             in
-            unparsedItems
-                |> List.map parseItem
-                |> Block.UnorderedList isLoose
-                |> ParsedBlock
+            rawBlocksList
+                |> List.map
+                    (\unparsed ->
+                        case Advanced.run rawBlockParser unparsed.body of
+                            Ok value ->
+                                parseAllInlines value
+                                    |> Result.map
+                                        (\blocks ->
+                                            Block.ListItem
+                                                (case unparsed.task of
+                                                    Just False ->
+                                                        Block.IncompleteTask
 
-        OrderedListBlock startingIndex isLoose unparsedInlines ->
-            unparsedInlines
-                |> List.map (parseRawInline linkReferences identity)
-                |> Block.OrderedList startingIndex isLoose
-                |> ParsedBlock
+                                                    Just True ->
+                                                        Block.CompletedTask
+
+                                                    Nothing ->
+                                                        Block.NoTask
+                                                )
+                                                blocks
+                                        )
+
+                            Err error ->
+                                Err (Parser.Problem (deadEndsToString error))
+                    )
+                |> combine
+                |> Result.map (Block.UnorderedList isLoose >> ParsedBlock)
+                |> Result.mapError InlineProblem
+                |> (\result ->
+                        case result of
+                            Ok r ->
+                                r
+
+                            Err r ->
+                                r
+                   )
+
+        OrderedListBlock startingIndex isLoose rawBlocksList ->
+            rawBlocksList
+                |> List.map
+                    (\rawBlocks ->
+                        case Advanced.run rawBlockParser rawBlocks of
+                            Ok value ->
+                                parseAllInlines value
+
+                            Err error ->
+                                Err (Parser.Problem (deadEndsToString error))
+                    )
+                |> combine
+                |> Result.map (Block.OrderedList startingIndex isLoose >> ParsedBlock)
+                |> Result.mapError InlineProblem
+                |> (\result ->
+                        case result of
+                            Ok r ->
+                                r
+
+                            Err r ->
+                                r
+                   )
 
         CodeBlock codeBlock ->
             Block.CodeBlock codeBlock
@@ -319,6 +368,11 @@ parseInlines linkReferences rawBlock =
                 |> inlineParseHelper linkReferences
                 |> Block.Paragraph
                 |> ParsedBlock
+
+
+combine : List (Result x a) -> Result x (List a)
+combine =
+    List.foldr (Result.map2 (::)) (Ok [])
 
 
 parseHeaderInlines : LinkReferenceDefinitions -> List (Markdown.Table.HeaderCell String) -> List (Markdown.Table.HeaderCell (List Inline))
@@ -403,7 +457,7 @@ unorderedListBlock =
         parseListItem unparsedListItem =
             case unparsedListItem of
                 ListItem.TaskItem completion body ->
-                    { body = UnparsedInlines body
+                    { body = body
                     , task =
                         (case completion of
                             ListItem.Complete ->
@@ -416,7 +470,7 @@ unorderedListBlock =
                     }
 
                 ListItem.PlainItem body ->
-                    { body = UnparsedInlines body
+                    { body = body
                     , task = Nothing
                     }
     in
@@ -427,7 +481,7 @@ unorderedListBlock =
 orderedListBlock : Bool -> Parser RawBlock
 orderedListBlock previousWasBody =
     Markdown.OrderedList.parser previousWasBody
-        |> map (\( startingIndex, isLoose, unparsedLines ) -> OrderedListBlock startingIndex isLoose (List.map UnparsedInlines unparsedLines))
+        |> map (\( startingIndex, isLoose, unparsedLines ) -> OrderedListBlock startingIndex isLoose unparsedLines)
 
 
 blankLine : Parser RawBlock

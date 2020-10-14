@@ -1,6 +1,7 @@
 module OrderedListTests exposing (..)
 
 import Expect exposing (Expectation)
+import Markdown.Block
 import Markdown.OrderedList
 import Markdown.Parser exposing (..)
 import Parser
@@ -25,6 +26,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -40,6 +42,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -56,6 +59,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -72,6 +76,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -88,6 +93,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 3
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -104,6 +110,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 0
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -120,6 +127,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 3
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -136,6 +144,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 3
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -152,6 +161,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -168,6 +178,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 3
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -187,6 +198,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "Item 1"
                               , "Item 2"
                               , "Item 3"
@@ -203,6 +215,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "foo"
                               , "bar"
                               ]
@@ -218,6 +231,7 @@ suite =
                     |> Expect.equal
                         (Ok
                             ( 1
+                            , Markdown.Block.IsTight
                             , [ "foo"
                               , ""
                               , "bar"

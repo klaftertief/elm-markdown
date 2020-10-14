@@ -200,12 +200,12 @@ Hello!
                         (Ok
                             [ Block.OrderedList 1
                                 Block.IsTight
-                                [ unstyledText "foo"
-                                , unstyledText "bar"
+                                [ [ Block.Paragraph (unstyledText "foo") ]
+                                , [ Block.Paragraph (unstyledText "bar") ]
                                 ]
                             , Block.OrderedList 3
                                 Block.IsTight
-                                [ unstyledText "baz"
+                                [ [ Block.Paragraph (unstyledText "baz") ]
                                 ]
                             ]
                         )
@@ -230,7 +230,7 @@ Hello!
                             [ Block.Paragraph (unstyledText "The number of windows in my house is")
                             , Block.OrderedList 1
                                 Block.IsTight
-                                [ unstyledText "The number of doors is 6."
+                                [ [ Block.Paragraph (unstyledText "The number of doors is 6.") ]
                                 ]
                             ]
                         )
@@ -828,9 +828,9 @@ expectOk expected input =
             Expect.fail (Debug.toString error)
 
 
-plainListItem : String -> Block.ListItem Block.Inline
+plainListItem : String -> Block.ListItem Block
 plainListItem body =
-    Block.ListItem Block.NoTask [ Block.Text body ]
+    Block.ListItem Block.NoTask [ Block.Paragraph (unstyledText body) ]
 
 
 unstyledText : String -> List Inline
