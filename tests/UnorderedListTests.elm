@@ -135,6 +135,72 @@ suite =
                               ]
                             )
                         )
+        , test "Nested list" <|
+            \() ->
+                """- Item 1
+    - Item 1 1
+    - Item 1 2
+- Item 2
+"""
+                    |> Advanced.run Markdown.UnorderedList.parser
+                    |> Expect.equal
+                        (Ok
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "- Item 1 1\n- Item 1 2"
+                              , plainItem "Item 2"
+                              ]
+                            )
+                        )
+        , test "Starting with space before list marker" <|
+            \() ->
+                """ - Item 1
+ - Item 2
+ - Item 3
+"""
+                    |> Advanced.run Markdown.UnorderedList.parser
+                    |> Expect.equal
+                        (Ok
+                            ( Markdown.Block.IsTight
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
+                        )
+        , test "loose list with '-' by containing two block level elements" <|
+            \() ->
+                """- Item 1 a
+
+  Item 1 b
+- Item 2
+          """
+                    |> Advanced.run Markdown.UnorderedList.parser
+                    |> Expect.equal
+                        (Ok
+                            ( Markdown.Block.IsLoose
+                            , [ plainItem "Item 1 a\n\nItem 1 b"
+                              , plainItem "Item 2"
+                              ]
+                            )
+                        )
+        , test "basic loose list with '-'" <|
+            \() ->
+                """- Item 1
+
+- Item 2
+- Item 3
+          """
+                    |> Advanced.run Markdown.UnorderedList.parser
+                    |> Expect.equal
+                        (Ok
+                            ( Markdown.Block.IsLoose
+                            , [ plainItem "Item 1"
+                              , plainItem "Item 2"
+                              , plainItem "Item 3"
+                              ]
+                            )
+                        )
         ]
 
 

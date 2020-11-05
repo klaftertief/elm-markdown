@@ -246,25 +246,6 @@ parseInlines linkReferences rawBlock =
                 |> ParsedBlock
 
         UnorderedListBlock isLoose rawBlocksList ->
-            let
-                parseItem unparsed =
-                    let
-                        parsedInlines =
-                            parseRawInline linkReferences identity unparsed.body
-
-                        task =
-                            case unparsed.task of
-                                Just False ->
-                                    Block.IncompleteTask
-
-                                Just True ->
-                                    Block.CompletedTask
-
-                                Nothing ->
-                                    Block.NoTask
-                    in
-                    Block.ListItem task parsedInlines
-            in
             rawBlocksList
                 |> List.map
                     (\unparsed ->
@@ -713,6 +694,10 @@ completeOrMergeBlocks state newRawBlock =
                 BlockQuote (joinRawStringsWith "\n" body2 body1)
                     :: rest
 
+            --( UnorderedListBlock isLoose1 listItems1, (UnorderedListBlock isLoose2 listItems2) :: rest ) ->
+            --    UnorderedListBlock Block.IsLoose (listItems2 ++ listItems1)
+            --        :: rest
+            --
             ( BlockQuote body1, (BlockQuote body2) :: rest ) ->
                 BlockQuote (joinStringsPreserveAll body2 body1)
                     :: rest

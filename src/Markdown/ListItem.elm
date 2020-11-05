@@ -1,6 +1,7 @@
 module Markdown.ListItem exposing (Completion(..), ListItem(..), parser)
 
 import Helpers exposing (endOfLineOrFile)
+import Markdown.Block
 import Parser
 import Parser.Advanced as Advanced exposing (..)
 import Parser.Extra exposing (zeroOrMore)
@@ -20,7 +21,7 @@ type alias Parser a =
     Advanced.Parser String Parser.Problem a
 
 
-parser : Parser ListItem
+parser : Parser ( Markdown.Block.Loose, ListItem )
 parser =
     oneOf
         [ succeed TaskItem
@@ -28,8 +29,10 @@ parser =
             |. zeroOrMore Helpers.isSpaceOrTab
         , succeed PlainItem
         ]
+        -- TODO Look ahead if this might be the beginning of a loose list
         |= Advanced.getChompedString (Advanced.chompUntilEndOr "\n")
         |. endOfLineOrFile
+        |> map (\item -> ( Markdown.Block.IsTight, item ))
 
 
 taskItemParser : Parser Completion
