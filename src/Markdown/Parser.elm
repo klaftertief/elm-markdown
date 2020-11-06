@@ -350,6 +350,9 @@ parseInlines linkReferences rawBlock =
                 |> Block.Paragraph
                 |> ParsedBlock
 
+        UnorderedListItem _ ->
+            EmptyBlock
+
 
 combine : List (Result x a) -> Result x (List a)
 combine =
@@ -416,9 +419,9 @@ blockQuoteStarts =
     [ symbol (Advanced.Token ">" (Parser.Expecting ">"))
     , Advanced.backtrackable (symbol Token.space)
         |. oneOf
-            [ symbol (Advanced.Token ">" (Parser.Expecting " >"))
-            , symbol (Advanced.Token " >" (Parser.Expecting "  >"))
-            , symbol (Advanced.Token "  >" (Parser.Expecting "   >"))
+            [ symbol (Advanced.Token " >" (Parser.Expecting " >"))
+            , symbol (Advanced.Token "  >" (Parser.Expecting "  >"))
+            , symbol (Advanced.Token "   >" (Parser.Expecting "   >"))
             ]
     ]
 
@@ -432,31 +435,38 @@ blockQuote =
         |. endOfLineOrFile
 
 
+unorderedListItem : Parser RawBlock
+unorderedListItem =
+    Markdown.UnorderedList.listItemItemParser
+        |> map UnorderedListItem
+
+
+parseListItem : ListItem.ListItem -> { body : String, task : Maybe Bool }
+parseListItem unparsedListItem =
+    case unparsedListItem of
+        ListItem.TaskItem completion body ->
+            { body = body
+            , task =
+                (case completion of
+                    ListItem.Complete ->
+                        True
+
+                    ListItem.Incomplete ->
+                        False
+                )
+                    |> Just
+            }
+
+        ListItem.PlainItem body ->
+            { body = body
+            , task = Nothing
+            }
+
+
 unorderedListBlock : Parser RawBlock
 unorderedListBlock =
-    let
-        parseListItem unparsedListItem =
-            case unparsedListItem of
-                ListItem.TaskItem completion body ->
-                    { body = body
-                    , task =
-                        (case completion of
-                            ListItem.Complete ->
-                                True
-
-                            ListItem.Incomplete ->
-                                False
-                        )
-                            |> Just
-                    }
-
-                ListItem.PlainItem body ->
-                    { body = body
-                    , task = Nothing
-                    }
-    in
     Markdown.UnorderedList.parser
-        |> map (\( isLoose, unparsedLines ) -> UnorderedListBlock isLoose (List.map parseListItem unparsedLines))
+        |> map (\unparsedLines -> UnorderedListBlock Block.IsTight (List.map parseListItem unparsedLines))
 
 
 orderedListBlock : Bool -> Parser RawBlock
@@ -675,7 +685,7 @@ completeOrMergeBlocks state newRawBlock =
     { linkReferenceDefinitions = state.linkReferenceDefinitions
     , rawBlocks =
         case
-            ( newRawBlock
+            ( newRawBlock |> Debug.log "RAW"
             , state.rawBlocks
             )
         of
@@ -694,12 +704,43 @@ completeOrMergeBlocks state newRawBlock =
                 BlockQuote (joinRawStringsWith "\n" body2 body1)
                     :: rest
 
-            --( UnorderedListBlock isLoose1 listItems1, (UnorderedListBlock isLoose2 listItems2) :: rest ) ->
-            --    UnorderedListBlock Block.IsLoose (listItems2 ++ listItems1)
-            --        :: rest
-            --
             ( BlockQuote body1, (BlockQuote body2) :: rest ) ->
                 BlockQuote (joinStringsPreserveAll body2 body1)
+                    :: rest
+
+            ( OpenBlockOrParagraph (UnparsedInlines unparsedBody), BlankLine :: ((UnorderedListBlock _ (firstListItem :: otherListItems)) as existingList) :: rest ) ->
+                if String.startsWith "  " unparsedBody then
+                    UnorderedListBlock Block.IsLoose
+                        ({ firstListItem
+                            | body =
+                                joinStringsPreserveAll firstListItem.body unparsedBody
+                         }
+                            :: otherListItems
+                        )
+                        :: rest
+
+                else
+                    newRawBlock
+                        :: existingList
+                        :: rest
+
+            ( UnorderedListItem listItem, [] ) ->
+                [ UnorderedListBlock Block.IsTight [ parseListItem listItem ] ]
+
+            ( UnorderedListItem listItem1, BlankLine :: (UnorderedListItem listItem2) :: rest ) ->
+                UnorderedListBlock Block.IsLoose [ parseListItem listItem2, parseListItem listItem1 ]
+                    :: rest
+
+            ( UnorderedListItem listItem1, (UnorderedListItem listItem2) :: rest ) ->
+                UnorderedListBlock Block.IsTight [ parseListItem listItem2, parseListItem listItem1 ]
+                    :: rest
+
+            ( UnorderedListItem listItem, BlankLine :: (UnorderedListBlock _ listItems) :: rest ) ->
+                UnorderedListBlock Block.IsLoose (listItems ++ [ parseListItem listItem ])
+                    :: rest
+
+            ( UnorderedListItem listItem, (UnorderedListBlock looseOrTight listItems) :: rest ) ->
+                UnorderedListBlock looseOrTight (listItems ++ [ parseListItem listItem ])
                     :: rest
 
             ( OpenBlockOrParagraph (UnparsedInlines body1), (OpenBlockOrParagraph (UnparsedInlines body2)) :: rest ) ->
@@ -787,7 +828,9 @@ mergeableBlockAfterOpenBlockOrParagraphParser =
         -- NOTE: indented block is not an option immediately after a Body
         , setextLineParser |> Advanced.backtrackable
         , ThematicBreak.parser |> Advanced.backtrackable |> map (\_ -> ThematicBreak)
-        , unorderedListBlock
+
+        --, unorderedListBlock
+        , unorderedListItem
 
         -- NOTE: the ordered list block changes its parsing rules when it's right after a Body
         , orderedListBlock True
@@ -808,7 +851,9 @@ mergeableBlockNotAfterOpenBlockOrParagraphParser =
         -- NOTE: indented block is an option after any non-Body block
         , indentedCodeBlock
         , ThematicBreak.parser |> Advanced.backtrackable |> map (\_ -> ThematicBreak)
-        , unorderedListBlock
+
+        --, unorderedListBlock
+        , unorderedListItem
 
         -- NOTE: the ordered list block changes its parsing rules when it's right after a Body
         , orderedListBlock False

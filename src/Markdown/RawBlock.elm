@@ -2,6 +2,7 @@ module Markdown.RawBlock exposing (Attribute, RawBlock(..), SetextLevel(..), Unp
 
 import Markdown.Block exposing (Block)
 import Markdown.CodeBlock exposing (CodeBlock)
+import Markdown.ListItem
 import Markdown.Table
 import Markdown.TableParser as TableParser
 
@@ -39,3 +40,4 @@ type RawBlock
     | BlankLine
     | BlockQuote String
     | SetextLine SetextLevel String
+    | UnorderedListItem Markdown.ListItem.ListItem

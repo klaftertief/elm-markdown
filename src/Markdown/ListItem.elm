@@ -12,6 +12,19 @@ type ListItem
     | PlainItem String
 
 
+type alias Info =
+    { marker : Marker
+    , offset : Int
+    , padding : Int
+    }
+
+
+type Marker
+    = Minus
+    | Plus
+    | Asterisk
+
+
 type Completion
     = Incomplete
     | Complete
@@ -21,7 +34,7 @@ type alias Parser a =
     Advanced.Parser String Parser.Problem a
 
 
-parser : Parser ( Markdown.Block.Loose, ListItem )
+parser : Parser ListItem
 parser =
     oneOf
         [ succeed TaskItem
@@ -29,10 +42,8 @@ parser =
             |. zeroOrMore Helpers.isSpaceOrTab
         , succeed PlainItem
         ]
-        -- TODO Look ahead if this might be the beginning of a loose list
         |= Advanced.getChompedString (Advanced.chompUntilEndOr "\n")
         |. endOfLineOrFile
-        |> map (\item -> ( Markdown.Block.IsTight, item ))
 
 
 taskItemParser : Parser Completion
