@@ -1,7 +1,6 @@
 module Markdown.ListItem exposing (Completion(..), ListItem(..), parser)
 
 import Helpers exposing (endOfLineOrFile)
-import Markdown.Block
 import Parser
 import Parser.Advanced as Advanced exposing (..)
 import Parser.Extra exposing (zeroOrMore)
@@ -10,19 +9,6 @@ import Parser.Extra exposing (zeroOrMore)
 type ListItem
     = TaskItem Completion String
     | PlainItem String
-
-
-type alias Info =
-    { marker : Marker
-    , offset : Int
-    , padding : Int
-    }
-
-
-type Marker
-    = Minus
-    | Plus
-    | Asterisk
 
 
 type Completion

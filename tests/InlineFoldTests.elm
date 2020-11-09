@@ -74,34 +74,33 @@ countInline inline totals =
 
 suite : Test
 suite =
-    skip <|
-        describe "fold inlines"
-            [ test "count inlines" <|
-                \() ->
-                    let
-                        totes =
-                            inlineFoldl countInline Dict.empty allBlocks
+    describe "fold inlines"
+        [ test "count inlines" <|
+            \() ->
+                let
+                    totes =
+                        inlineFoldl countInline Dict.empty allBlocks
 
-                        occs =
-                            7
+                    occs =
+                        7
 
-                        targets =
-                            Dict.fromList
-                                [ ( "HardLineBreak", occs )
-                                , ( "CodeSpan", occs )
-                                , ( "Link", occs )
-                                , ( "Image", occs )
-                                , ( "HtmlInline", occs )
-                                , ( "Emphasis", occs )
-                                , ( "Strong", occs )
-                                , ( "ImageText", occs )
-                                , ( "EmphasisText", occs )
-                                , ( "StrongText", occs )
-                                , ( "TextText", occs )
-                                , ( "LinkText", occs )
-                                , ( "htmlblockparablock", 1 )
-                                , ( "htmlinlineparablock", occs )
-                                ]
-                    in
-                    Expect.equal totes targets
-            ]
+                    targets =
+                        Dict.fromList
+                            [ ( "HardLineBreak", occs )
+                            , ( "CodeSpan", occs )
+                            , ( "Link", occs )
+                            , ( "Image", occs )
+                            , ( "HtmlInline", occs )
+                            , ( "Emphasis", occs )
+                            , ( "Strong", occs )
+                            , ( "ImageText", occs )
+                            , ( "EmphasisText", occs )
+                            , ( "StrongText", occs )
+                            , ( "TextText", occs )
+                            , ( "LinkText", occs )
+                            , ( "htmlblockparablock", 1 )
+                            , ( "htmlinlineparablock", occs )
+                            ]
+                in
+                Expect.equal totes targets
+        ]

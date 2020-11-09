@@ -5,6 +5,7 @@ import Markdown.CodeBlock exposing (CodeBlock)
 import Markdown.ListItem
 import Markdown.Table
 import Markdown.TableParser as TableParser
+import Markdown.UnorderedList
 
 
 type alias Attribute =
@@ -29,6 +30,7 @@ type RawBlock
         (List
             { task : Maybe Bool
             , body : String
+            , info : Markdown.UnorderedList.Info
             }
         )
     | OrderedListBlock Int Markdown.Block.Loose (List String)
@@ -40,4 +42,4 @@ type RawBlock
     | BlankLine
     | BlockQuote String
     | SetextLine SetextLevel String
-    | UnorderedListItem Markdown.ListItem.ListItem
+    | UnorderedListItem ( Markdown.UnorderedList.Info, Markdown.ListItem.ListItem )

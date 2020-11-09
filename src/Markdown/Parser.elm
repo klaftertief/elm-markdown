@@ -441,8 +441,8 @@ unorderedListItem =
         |> map UnorderedListItem
 
 
-parseListItem : ListItem.ListItem -> { body : String, task : Maybe Bool }
-parseListItem unparsedListItem =
+parseListItem : Markdown.UnorderedList.Info -> ListItem.ListItem -> { body : String, task : Maybe Bool, info : Markdown.UnorderedList.Info }
+parseListItem info unparsedListItem =
     case unparsedListItem of
         ListItem.TaskItem completion body ->
             { body = body
@@ -455,18 +455,21 @@ parseListItem unparsedListItem =
                         False
                 )
                     |> Just
+            , info = info
             }
 
         ListItem.PlainItem body ->
             { body = body
             , task = Nothing
+            , info = info
             }
 
 
-unorderedListBlock : Parser RawBlock
-unorderedListBlock =
-    Markdown.UnorderedList.parser
-        |> map (\unparsedLines -> UnorderedListBlock Block.IsTight (List.map parseListItem unparsedLines))
+
+--unorderedListBlock : Parser RawBlock
+--unorderedListBlock =
+--    Markdown.UnorderedList.parser
+--        |> map (\unparsedLines -> UnorderedListBlock Block.IsTight (List.map parseListItem unparsedLines))
 
 
 orderedListBlock : Bool -> Parser RawBlock
@@ -685,7 +688,7 @@ completeOrMergeBlocks state newRawBlock =
     { linkReferenceDefinitions = state.linkReferenceDefinitions
     , rawBlocks =
         case
-            ( newRawBlock |> Debug.log "RAW"
+            ( newRawBlock
             , state.rawBlocks
             )
         of
@@ -740,24 +743,30 @@ completeOrMergeBlocks state newRawBlock =
                         :: existingList
                         :: rest
 
-            ( UnorderedListItem listItem, [] ) ->
-                [ UnorderedListBlock Block.IsTight [ parseListItem listItem ] ]
+            ( UnorderedListItem ( info, listItem ), [] ) ->
+                [ UnorderedListBlock Block.IsTight [ parseListItem info listItem ] ]
 
-            ( UnorderedListItem listItem1, BlankLine :: (UnorderedListItem listItem2) :: rest ) ->
-                UnorderedListBlock Block.IsLoose [ parseListItem listItem2, parseListItem listItem1 ]
+            ( UnorderedListItem ( info1, listItem1 ), BlankLine :: (UnorderedListItem ( info2, listItem2 )) :: rest ) ->
+                UnorderedListBlock Block.IsLoose [ parseListItem info2 listItem2, parseListItem info1 listItem1 ]
                     :: rest
 
-            ( UnorderedListItem listItem1, (UnorderedListItem listItem2) :: rest ) ->
-                UnorderedListBlock Block.IsTight [ parseListItem listItem2, parseListItem listItem1 ]
+            ( UnorderedListItem ( info1, listItem1 ), (UnorderedListItem ( info2, listItem2 )) :: rest ) ->
+                UnorderedListBlock Block.IsTight [ parseListItem info2 listItem2, parseListItem info1 listItem1 ]
                     :: rest
 
-            ( UnorderedListItem listItem, BlankLine :: (UnorderedListBlock _ listItems) :: rest ) ->
-                UnorderedListBlock Block.IsLoose (listItems ++ [ parseListItem listItem ])
+            ( UnorderedListItem ( info, listItem ), BlankLine :: (UnorderedListBlock _ listItems) :: rest ) ->
+                UnorderedListBlock Block.IsLoose (listItems ++ [ parseListItem info listItem ])
                     :: rest
 
-            ( UnorderedListItem listItem, (UnorderedListBlock looseOrTight listItems) :: rest ) ->
-                UnorderedListBlock looseOrTight (listItems ++ [ parseListItem listItem ])
-                    :: rest
+            ( UnorderedListItem ( info, listItem ), (UnorderedListBlock looseOrTight (firstListItem :: listItems)) :: rest ) ->
+                if info.marker == firstListItem.info.marker then
+                    UnorderedListBlock looseOrTight (firstListItem :: listItems ++ [ parseListItem info listItem ])
+                        :: rest
+
+                else
+                    UnorderedListBlock Block.IsTight [ parseListItem info listItem ]
+                        :: UnorderedListBlock looseOrTight (firstListItem :: listItems)
+                        :: rest
 
             ( OpenBlockOrParagraph (UnparsedInlines body1), (OpenBlockOrParagraph (UnparsedInlines body2)) :: rest ) ->
                 OpenBlockOrParagraph (UnparsedInlines (joinRawStringsWith "\n" body2 body1))
@@ -803,6 +812,12 @@ stepRawBlock revStmts =
             |> map (\reference -> Loop (addReference revStmts reference))
         , (case revStmts.rawBlocks of
             (OpenBlockOrParagraph _) :: _ ->
+                mergeableBlockAfterOpenBlockOrParagraphParser
+
+            (UnorderedListBlock _ _) :: _ ->
+                mergeableBlockAfterOpenBlockOrParagraphParser
+
+            (UnorderedListItem _) :: _ ->
                 mergeableBlockAfterOpenBlockOrParagraphParser
 
             (Table table) :: _ ->
@@ -865,7 +880,7 @@ mergeableBlockNotAfterOpenBlockOrParagraphParser =
         , Markdown.CodeBlock.parser |> Advanced.backtrackable |> map CodeBlock
 
         -- NOTE: indented block is an option after any non-Body block
-        --, indentedCodeBlock
+        , indentedCodeBlock
         , ThematicBreak.parser |> Advanced.backtrackable |> map (\_ -> ThematicBreak)
 
         --, unorderedListBlock

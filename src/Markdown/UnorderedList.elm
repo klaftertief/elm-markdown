@@ -1,4 +1,4 @@
-module Markdown.UnorderedList exposing (listItemItemParser, parser)
+module Markdown.UnorderedList exposing (Info, Marker, listItemItemParser, parser)
 
 import Helpers
 import Markdown.Block
@@ -7,6 +7,20 @@ import Parser
 import Parser.Advanced as Advanced exposing (..)
 import Parser.Extra exposing (oneOrMore)
 import Parser.Token as Token
+
+
+type alias Info =
+    { marker : Marker
+
+    --, offset : Int
+    --, padding : Int
+    }
+
+
+type Marker
+    = Minus
+    | Plus
+    | Asterisk
 
 
 type alias Parser a =
@@ -42,12 +56,15 @@ listMarkerParser =
         ]
 
 
-listItemItemParser : Parser ListItem
+listItemItemParser : Parser ( Info, ListItem )
 listItemItemParser =
     Advanced.oneOf
         [ singleItemParser Token.minus
+            |> map (\listItem -> ( { marker = Minus }, listItem ))
         , singleItemParser Token.plus
+            |> map (\listItem -> ( { marker = Plus }, listItem ))
         , singleItemParser Token.asterisk
+            |> map (\listItem -> ( { marker = Asterisk }, listItem ))
         ]
 
 
