@@ -708,12 +708,28 @@ completeOrMergeBlocks state newRawBlock =
                 BlockQuote (joinStringsPreserveAll body2 body1)
                     :: rest
 
-            ( OpenBlockOrParagraph (UnparsedInlines unparsedBody), BlankLine :: ((UnorderedListBlock _ (firstListItem :: otherListItems)) as existingList) :: rest ) ->
+            ( OpenBlockOrParagraph (UnparsedInlines unparsedBody), BlankLine :: ((UnorderedListBlock looseOrTight (firstListItem :: otherListItems)) as existingList) :: rest ) ->
                 if String.startsWith "  " unparsedBody then
                     UnorderedListBlock Block.IsLoose
                         ({ firstListItem
                             | body =
-                                joinStringsPreserveAll firstListItem.body unparsedBody
+                                joinRawStringsWith "\n\n" firstListItem.body unparsedBody
+                         }
+                            :: otherListItems
+                        )
+                        :: rest
+
+                else
+                    newRawBlock
+                        :: existingList
+                        :: rest
+
+            ( OpenBlockOrParagraph (UnparsedInlines unparsedBody), ((UnorderedListBlock looseOrTight (firstListItem :: otherListItems)) as existingList) :: rest ) ->
+                if String.startsWith "    " unparsedBody then
+                    UnorderedListBlock looseOrTight
+                        ({ firstListItem
+                            | body =
+                                joinRawStringsWith "\n" firstListItem.body (String.dropLeft 4 unparsedBody)
                          }
                             :: otherListItems
                         )
@@ -849,7 +865,7 @@ mergeableBlockNotAfterOpenBlockOrParagraphParser =
         , Markdown.CodeBlock.parser |> Advanced.backtrackable |> map CodeBlock
 
         -- NOTE: indented block is an option after any non-Body block
-        , indentedCodeBlock
+        --, indentedCodeBlock
         , ThematicBreak.parser |> Advanced.backtrackable |> map (\_ -> ThematicBreak)
 
         --, unorderedListBlock

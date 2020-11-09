@@ -270,28 +270,27 @@ Paragraph
                                 ]
                             ]
                         )
-        , only <|
-            test "loose list by two paragraphs" <|
-                \() ->
-                    """- One A
+        , test "loose list by two paragraphs" <|
+            \() ->
+                """- One A
 
   One B
 - Two
 - Three
 """
-                        |> parse
-                        |> Expect.equal
-                            (Ok
-                                [ Block.UnorderedList Block.IsLoose
-                                    [ Block.ListItem Block.NoTask
-                                        [ Block.Paragraph (unstyledText "One A")
-                                        , Block.Paragraph (unstyledText "One B")
-                                        ]
-                                    , plainListItem "Two"
-                                    , plainListItem "Three"
+                    |> parse
+                    |> Expect.equal
+                        (Ok
+                            [ Block.UnorderedList Block.IsLoose
+                                [ Block.ListItem Block.NoTask
+                                    [ Block.Paragraph (unstyledText "One A")
+                                    , Block.Paragraph (unstyledText "One B")
                                     ]
+                                , plainListItem "Two"
+                                , plainListItem "Three"
                                 ]
-                            )
+                            ]
+                        )
         , test "simple nested list" <|
             \() ->
                 """- One
