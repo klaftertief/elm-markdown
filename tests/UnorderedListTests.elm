@@ -16,6 +16,7 @@ type alias Parser a =
 
 suite : Test
 suite =
+    --only <|
     describe "list parsing"
         [ test "basic list with '-'" <|
             \() ->
@@ -135,6 +136,37 @@ suite =
                             , plainItem "Item 3"
                             ]
                         )
+        , test "List with gaps" <|
+            \() ->
+                """- Item 1
+
+- Item 2
+
+
+- Item 3
+"""
+                    |> Advanced.run Markdown.UnorderedList.parser
+                    |> Expect.equal
+                        (Ok
+                            [ plainItem "Item 1"
+                            , plainItem "Item 2"
+                            , plainItem "Item 3"
+                            ]
+                        )
+
+        --        , test "With continuation line" <|
+        --            \() ->
+        --                """* foo
+        --bar
+        --* baz
+        --"""
+        --                    |> Advanced.run Markdown.UnorderedList.parser
+        --                    |> Expect.equal
+        --                        (Ok
+        --                            [ plainItem "foo bar"
+        --                            , plainItem "baz"
+        --                            ]
+        --                        )
         ]
 
 

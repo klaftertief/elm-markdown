@@ -99,6 +99,12 @@ upToThreeSpaces =
         ]
 
 
+countUpToThreeSpaces : Parser Int
+countUpToThreeSpaces =
+    mapChompedString (\str _ -> String.length str) <|
+        upToThreeSpaces
+
+
 spaceOrTab : Parser ()
 spaceOrTab =
     chompIf isSpaceOrTab (Parser.Expecting "space or tab")

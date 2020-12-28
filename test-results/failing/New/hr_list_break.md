@@ -23,5 +23,5 @@ Should give output:
 But instead was:
 
 ````````````html
-<ul><li>hello</li></ul><p>world</p><ul><li>how</li></ul><p>are</p><hr><p>you today?</p>
+<ul><li>hello world are</li><li>how</li></ul><hr><p>you today?</p>
 ````````````

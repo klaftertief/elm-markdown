@@ -74,6 +74,7 @@ countInline inline totals =
 
 suite : Test
 suite =
+    --skip <|
     describe "fold inlines"
         [ test "count inlines" <|
             \() ->
@@ -82,7 +83,7 @@ suite =
                         inlineFoldl countInline Dict.empty allBlocks
 
                     occs =
-                        7
+                        5
 
                     targets =
                         Dict.fromList

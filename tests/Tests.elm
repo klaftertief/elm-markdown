@@ -37,6 +37,13 @@ suite =
                     "## Hello!"
                         |> parse
                         |> Expect.equal (Ok [ Block.Heading Block.H2 (unstyledText "Hello!") ])
+            , test "Setext heading and not an empty list" <|
+                \() ->
+                    """Hello!
+-
+"""
+                        |> parse
+                        |> Expect.equal (Ok [ Block.Heading Block.H2 (unstyledText "Hello!") ])
             , test "Emphasis line is not interpreted as a list" <|
                 \() ->
                     "*This is not a list, it's a paragraph with emphasis*\n"
@@ -138,55 +145,88 @@ Hello!
                                 )
                             ]
                         )
-        , test "simple list" <|
-            \() ->
-                """- One
+        , describe "lists"
+            [ test "simple list" <|
+                \() ->
+                    """- One
 - Two
 - Three
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsTight
-                                [ plainListItem "One"
-                                , plainListItem "Two"
-                                , plainListItem "Three"
-                                ]
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "One"
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
+                                    ]
 
-                            -- TODO why is this extra block here? Fix
-                            -- , ListBlock []
-                            ]
-                        )
-        , test "single list item" <|
-            \() ->
-                """- Single
-"""
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsTight
-                                [ plainListItem "Single"
+                                -- TODO why is this extra block here? Fix
+                                -- , ListBlock []
                                 ]
-                            ]
-                        )
-        , test "single list item followed by new block" <|
-            \() ->
-                """- Single
+                            )
+            , test "list with empty item" <|
+                \() ->
+                    """- One
+-
+- Three
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "One"
+                                    , emptyListItem
+                                    , plainListItem "Three"
+                                    ]
+                                ]
+                            )
+            , test "list with different indentations" <|
+                \() ->
+                    """ - One
+- Two
+ - Three
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "One"
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
+                                    ]
+                                ]
+                            )
+            , test "single list item" <|
+                \() ->
+                    """- Single
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "Single"
+                                    ]
+                                ]
+                            )
+            , test "single list item followed by new block" <|
+                \() ->
+                    """- Single
 
 Paragraph
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsTight
-                                [ plainListItem "Single"
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "Single"
+                                    ]
+                                , Block.Paragraph (unstyledText "Paragraph")
                                 ]
-                            , Block.Paragraph (unstyledText "Paragraph")
-                            ]
-                        )
-        , test "sibling unordered lists with different markers" <|
-            \() ->
-                """- Item 1
+                            )
+            , test "sibling unordered lists with different markers" <|
+                \() ->
+                    """- Item 1
 - Item 2
 - Item 3
 + Item 4
@@ -196,135 +236,194 @@ Paragraph
 * Item 8
 * Item 9
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsTight
-                                [ plainListItem "Item 1"
-                                , plainListItem "Item 2"
-                                , plainListItem "Item 3"
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "Item 1"
+                                    , plainListItem "Item 2"
+                                    , plainListItem "Item 3"
+                                    ]
+                                , Block.UnorderedList Block.IsTight
+                                    [ plainListItem "Item 4"
+                                    , plainListItem "Item 5"
+                                    , plainListItem "Item 6"
+                                    ]
+                                , Block.UnorderedList Block.IsTight
+                                    [ plainListItem "Item 7"
+                                    , plainListItem "Item 8"
+                                    , plainListItem "Item 9"
+                                    ]
                                 ]
-                            , Block.UnorderedList Block.IsTight
-                                [ plainListItem "Item 4"
-                                , plainListItem "Item 5"
-                                , plainListItem "Item 6"
-                                ]
-                            , Block.UnorderedList Block.IsTight
-                                [ plainListItem "Item 7"
-                                , plainListItem "Item 8"
-                                , plainListItem "Item 9"
-                                ]
-                            ]
-                        )
-        , test "sibling ordered lists with different markers" <|
-            \() ->
-                """1. foo
+                            )
+            , test "sibling ordered lists with different markers" <|
+                \() ->
+                    """1. foo
 2. bar
 3) baz
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.OrderedList 1
-                                Block.IsTight
-                                [ [ Block.Paragraph (unstyledText "foo") ]
-                                , [ Block.Paragraph (unstyledText "bar") ]
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.OrderedList 1
+                                    Block.IsTight
+                                    [ [ Block.Paragraph (unstyledText "foo") ]
+                                    , [ Block.Paragraph (unstyledText "bar") ]
+                                    ]
+                                , Block.OrderedList 3
+                                    Block.IsTight
+                                    [ [ Block.Paragraph (unstyledText "baz") ]
+                                    ]
                                 ]
-                            , Block.OrderedList 3
-                                Block.IsTight
-                                [ [ Block.Paragraph (unstyledText "baz") ]
+                            )
+            , test "With continuation line" <|
+                \() ->
+                    """- One A
+One B
+- Two
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ plainListItem "One A One B"
+                                    , plainListItem "Two"
+                                    ]
                                 ]
-                            ]
-                        )
-        , test "loose list by blank line" <|
-            \() ->
-                """- One
+                            )
+            , test "loose list by blank line" <|
+                \() ->
+                    """- One
 
 - Two
 - Three
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsLoose
-                                [ plainListItem "One"
-                                , plainListItem "Two"
-                                , plainListItem "Three"
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsLoose
+                                    [ plainListItem "One"
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
+                                    ]
                                 ]
-                            ]
-                        )
-        , test "loose list by blank line later" <|
-            \() ->
-                """- One
+                            )
+            , test "loose list by blank line later" <|
+                \() ->
+                    """- One
 - Two
 
 - Three
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsLoose
-                                [ plainListItem "One"
-                                , plainListItem "Two"
-                                , plainListItem "Three"
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsLoose
+                                    [ plainListItem "One"
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
+                                    ]
                                 ]
-                            ]
-                        )
-        , test "loose list by two paragraphs" <|
-            \() ->
-                """- One A
+                            )
+            , test "loose list by multiple blank lines" <|
+                \() ->
+                    """- One
+
+
+- Two
+
+
+
+- Three
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsLoose
+                                    [ plainListItem "One"
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
+                                    ]
+                                ]
+                            )
+            , test "loose list by two paragraphs" <|
+                \() ->
+                    """- One A
 
   One B
 - Two
 - Three
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsLoose
-                                [ Block.ListItem Block.NoTask
-                                    [ Block.Paragraph (unstyledText "One A")
-                                    , Block.Paragraph (unstyledText "One B")
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsLoose
+                                    [ Block.ListItem Block.NoTask
+                                        [ Block.Paragraph (unstyledText "One A")
+                                        , Block.Paragraph (unstyledText "One B")
+                                        ]
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
                                     ]
-                                , plainListItem "Two"
-                                , plainListItem "Three"
                                 ]
-                            ]
-                        )
-        , test "simple nested list" <|
-            \() ->
-                """- One
+                            )
+            , test "heading in list" <|
+                \() ->
+                    """- # One
+- ## Two
+- # Three
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ Block.ListItem Block.NoTask
+                                        [ Block.Heading Block.H1 (unstyledText "One")
+                                        ]
+                                    , Block.ListItem Block.NoTask
+                                        [ Block.Heading Block.H2 (unstyledText "Two")
+                                        ]
+                                    , Block.ListItem Block.NoTask
+                                        [ Block.Heading Block.H1 (unstyledText "Three")
+                                        ]
+                                    ]
+                                ]
+                            )
+            , test "simple nested list" <|
+                \() ->
+                    """- One
     - One A
     - One B
 - Two
 - Three
 """
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.UnorderedList Block.IsTight
-                                [ Block.ListItem Block.NoTask
-                                    [ Block.Paragraph (unstyledText "One")
-                                    , Block.UnorderedList Block.IsTight
-                                        [ plainListItem "One A"
-                                        , plainListItem "One B"
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.UnorderedList Block.IsTight
+                                    [ Block.ListItem Block.NoTask
+                                        [ Block.Paragraph (unstyledText "One")
+                                        , Block.UnorderedList Block.IsTight
+                                            [ plainListItem "One A"
+                                            , plainListItem "One B"
+                                            ]
                                         ]
+                                    , plainListItem "Two"
+                                    , plainListItem "Three"
                                     ]
-                                , plainListItem "Two"
-                                , plainListItem "Three"
                                 ]
-                            ]
-                        )
-        , test "A paragraph with a numeral that is NOT 1 in the text before a blank line" <|
-            \() ->
-                """The number of windows in my house is
+                            )
+            , test "A paragraph with a numeral that is NOT 1 in the text before a blank line" <|
+                \() ->
+                    """The number of windows in my house is
 14.  The number of doors is 6."""
-                    |> parse
-                    |> Expect.equal
-                        (Ok
-                            [ Block.Paragraph (unstyledText "The number of windows in my house is\n14.  The number of doors is 6.")
-                            ]
-                        )
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.Paragraph (unstyledText "The number of windows in my house is\n14.  The number of doors is 6.")
+                                ]
+                            )
+            ]
         , test "A paragraph with a numeral that IS 1 in the text" <|
             \() ->
                 """The number of windows in my house is
@@ -492,6 +591,20 @@ ___"""
                             [ Block.ThematicBreak
                             ]
                         )
+        , test "thematic break after list" <|
+            \() ->
+                """- List
+---
+"""
+                    |> parse
+                    |> Expect.equal
+                        (Ok
+                            [ Block.UnorderedList Block.IsTight
+                                [ plainListItem "List"
+                                ]
+                            , Block.ThematicBreak
+                            ]
+                        )
         , test "blank lines are ignored" <|
             \() ->
                 " \n  \n    \n\t\n"
@@ -657,6 +770,20 @@ I'm part of the block quote
                                     [ Block.Heading Block.H1 (unstyledText "Heading")
                                     , Block.Paragraph (unstyledText "I'm part of the block quote")
                                     ]
+                                ]
+                            )
+            , test "list after block quote" <|
+                \() ->
+                    """> - Quoted list
+- List
+"""
+                        |> parse
+                        |> Expect.equal
+                            (Ok
+                                [ Block.BlockQuote
+                                    [ Block.UnorderedList Block.IsTight [ plainListItem "Quoted list" ]
+                                    ]
+                                , Block.UnorderedList Block.IsTight [ plainListItem "List" ]
                                 ]
                             )
             ]
@@ -955,6 +1082,11 @@ expectOk expected input =
 plainListItem : String -> Block.ListItem Block
 plainListItem body =
     Block.ListItem Block.NoTask [ Block.Paragraph (unstyledText body) ]
+
+
+emptyListItem : Block.ListItem Block
+emptyListItem =
+    Block.ListItem Block.NoTask []
 
 
 unstyledText : String -> List Inline

@@ -1,4 +1,4 @@
-module Markdown.ListItem exposing (Completion(..), ListItem(..), parser)
+module Markdown.ListItem exposing (Completion(..), ListItem(..), isEmpty, parser)
 
 import Helpers exposing (endOfLineOrFile)
 import Parser
@@ -14,6 +14,16 @@ type ListItem
 type Completion
     = Incomplete
     | Complete
+
+
+isEmpty : ListItem -> Bool
+isEmpty listItem =
+    case listItem of
+        TaskItem _ _ ->
+            False
+
+        PlainItem string ->
+            String.isEmpty string
 
 
 type alias Parser a =

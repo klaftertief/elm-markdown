@@ -1,4 +1,4 @@
-module Parser.Extra exposing (maybeChomp, oneOrMore, positiveInteger, tokenHelp, zeroOrMore)
+module Parser.Extra exposing (countOneOrMore, maybeChomp, oneOrMore, positiveInteger, tokenHelp, zeroOrMore)
 
 import Parser
 import Parser.Advanced as Advanced exposing ((|.), Parser, chompIf, chompWhile, mapChompedString, oneOf, succeed)
@@ -8,6 +8,12 @@ oneOrMore : (Char -> Bool) -> Parser c Parser.Problem ()
 oneOrMore condition =
     chompIf condition (Parser.Problem "Expected one or more character")
         |. chompWhile condition
+
+
+countOneOrMore : (Char -> Bool) -> Parser c Parser.Problem Int
+countOneOrMore condition =
+    mapChompedString (\str _ -> String.length str) <|
+        oneOrMore condition
 
 
 zeroOrMore : (Char -> Bool) -> Parser c x ()
